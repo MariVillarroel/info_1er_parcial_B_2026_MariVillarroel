@@ -1,5 +1,7 @@
 import arcade
 from typing import Protocol
+import random 
+import math 
 
 
 class Tool(Protocol):
@@ -25,7 +27,6 @@ class PencilTool(Tool):
         for trace in traces:
             if trace["tool"] != self.name:
                 continue
-            # draw_line_strip requiere al menos 2 puntos
             if len(trace["trace"]) < 2:
                 continue
             arcade.draw_line_strip(trace["trace"], trace["color"])
@@ -43,9 +44,29 @@ class MarkerTool(Tool):
     """
     name = "MARKER"
 
-    ### ---------------------- ###
-    ### SU IMPLEMENTACION AQUI ###
-    ### ---------------------- ###
+    def __init__(self, thickness: int = 8):
+        self.thickness = thickness
+
+    def draw_traces(self, traces: list[dict]):
+        for trace in traces:
+            if trace["tool"] != self.name:
+                continue
+            
+            points = trace["trace"]
+            if len(points) < 2:
+                continue
+
+            for i in range(len(points) - 1):
+                start_x, start_y = points[i]
+                end_x, end_y = points[j := i + 1]
+                arcade.draw_line(
+                    start_x, 
+                    start_y, 
+                    end_x, 
+                    end_y, 
+                    trace["color"], 
+                    line_width=self.thickness
+                )
 
 
 class SprayTool(Tool):
@@ -62,9 +83,33 @@ class SprayTool(Tool):
     """
     name = "SPRAY"
 
-    ### ---------------------- ###
-    ### SU IMPLEMENTACION AQUI ###
-    ### ---------------------- ###
+    def __init__(self, count: int = 12, radius: float = 10.0):
+        self.count = count
+        self.radius = radius
+
+    def draw_traces(self, traces: list[dict]):
+        for trace in traces:
+            if trace["tool"] != self.name:
+                continue
+
+            for center_x, center_y in trace["trace"]:
+                random.seed(int(center_x * 1000 + center_y))
+                
+                for _ in range(self.count):
+                    angle = random.uniform(0, 2 * math.pi)
+                    r = self.radius * math.sqrt(random.uniform(0, 1))
+                    
+                    offset_x = r * math.cos(angle)
+                    offset_y = r * math.sin(angle)
+                    
+                    arcade.draw_point(
+                        center_x + offset_x, 
+                        center_y + offset_y, 
+                        trace["color"], 
+                        size=2 
+                    )
+        
+        random.seed(None)
 
 
 class EraserTool(Tool):
@@ -88,6 +133,44 @@ class EraserTool(Tool):
     """
     name = "ERASER"
 
-    ### ---------------------- ###
-    ### SU IMPLEMENTACION AQUI ###
-    ### ---------------------- ###
+    def __init__(self, radius: float = 15.0):
+        self.radius = radius
+
+    def draw_traces(self, traces: list[dict]):
+        # El borrador no dibuja nada 
+        pass
+
+    def erase(self, traces: list[dict], mouse_x: float, mouse_y: float):
+        """
+        Recorre la lista de trazos actual y remueve los puntos que estén 
+        dentro del radio del borrador. Si se borra un punto intermedio,
+        el trazo se divide en múltiples segmentos.
+        """
+        new_traces = []
+
+        for trace in traces:
+            current_sub_trace = []
+            
+            for x, y in trace["trace"]:
+                distance = math.hypot(x - mouse_x, y - mouse_y)
+                
+                if distance <= self.radius:
+                    if current_sub_trace:
+                        new_traces.append({
+                            "tool": trace["tool"],
+                            "color": trace["color"],
+                            "trace": current_sub_trace
+                        })
+                        current_sub_trace = []
+                else:
+                    current_sub_trace.append((x, y))
+            
+            if current_sub_trace:
+                new_traces.append({
+                    "tool": trace["tool"],
+                    "color": trace["color"],
+                    "trace": current_sub_trace
+                })
+
+        traces.clear()
+        traces.extend(new_traces)

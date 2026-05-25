@@ -69,7 +69,7 @@ herramientas (los stubs `### KEY_2 -> ...` ya estan marcados).
 - **Carga:** al invocar el programa con un argumento de linea de
   comandos (`uv run main.py ruta/a/dibujo.json`), lea el archivo y
   pueble `self.traces` con su contenido. El programa debe renderizar
-  inmediatamente el dibujo cargado.
+  inmediatamente el dibujo cargado. En este proyecto (Mariana Villarroel), el comando es "uv run main.py dibujo.json"
 
 Nota: los colores de `arcade.color.*` son tuplas `(R, G, B)`; JSON los
 serializa como listas. Asegurese de que la carga las re-convierta a
